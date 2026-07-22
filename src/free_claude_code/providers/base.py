@@ -25,8 +25,11 @@ class ProviderConfig:
     (e.g. NIM temperature, top_p) are passed by the provider constructor.
     """
 
+    # primary api_key kept for backward compatibility with older providers
     api_key: str
-    base_url: str
+    # allow multiple API keys for fallback/rotation
+    api_keys: tuple[str, ...] = ()
+    base_url: str = ""
     rate_limit: int | None = None
     rate_window: int = 60
     max_concurrency: int = 5

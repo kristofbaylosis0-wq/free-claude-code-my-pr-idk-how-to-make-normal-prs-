@@ -4,6 +4,7 @@ from free_claude_code.application.errors import ApplicationUnavailableError
 from free_claude_code.config.provider_catalog import ProviderDescriptor
 from free_claude_code.config.settings import Settings
 from free_claude_code.providers.base import ProviderConfig
+from free_claude_code.config.credentials import parse_api_keys
 
 
 def string_setting(settings: Settings, attr_name: str | None, default: str = "") -> str:
@@ -53,6 +54,9 @@ def build_provider_config(
     """Build shared provider configuration for one provider descriptor."""
     credential = provider_credential(descriptor, settings)
     require_provider_credential(descriptor, credential)
+    # parse multiple keys (comma/semicolon/space separated) but keep the original
+    # credential string for compatibility.
+    api_keys = parse_api_keys(credential)
     base_url = string_setting(
         settings, descriptor.base_url_attr, descriptor.default_base_url or ""
     )
@@ -62,8 +66,11 @@ def build_provider_config(
             f"Provider {descriptor.provider_id!r} has no configured base URL."
         )
     proxy = string_setting(settings, descriptor.proxy_attr)
+    # choose primary key for backward compatibility
+    primary = api_keys[0] if api_keys else credential
     return ProviderConfig(
-        api_key=credential,
+        api_key=primary,
+        api_keys=api_keys,
         base_url=resolved_base_url,
         rate_limit=settings.provider_rate_limit,
         rate_window=settings.provider_rate_window,
