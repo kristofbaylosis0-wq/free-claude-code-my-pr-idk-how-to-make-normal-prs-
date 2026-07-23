@@ -21,7 +21,6 @@ from .reasoning import (
     NO_REASONING,
     SPLIT_REASONING_OUTPUT,
     NamedEffortReasoning,
-    ReasoningEncoder,
     ReasoningObject,
     ThinkingObjectReasoning,
 )
@@ -162,6 +161,10 @@ OPENAI_CHAT_PROFILES: dict[str, OpenAIChatProfile] = {
         _policy("BEDROCK", ReasoningReplayMode.THINK_TAGS),
         NO_REASONING,
         normalize_base_url=True,
+    ),
+    "siliconflow": OpenAIChatProfile(
+        _policy("SILICONFLOW", ReasoningReplayMode.THINK_TAGS),
+        NO_REASONING,
     ),
     "huggingface": OpenAIChatProfile(
         _policy(
@@ -342,29 +345,5 @@ OPENAI_CHAT_PROFILES: dict[str, OpenAIChatProfile] = {
             disabled_value="none",
             enabled_value="high",
         ),
-        reasoning_delta_field="reasoning",
-    ),
-    "llamacpp": OpenAIChatProfile(
-        _policy(
-            "LLAMACPP",
-            ReasoningReplayMode.THINK_TAGS,
-            default_max_tokens=ANTHROPIC_DEFAULT_MAX_OUTPUT_TOKENS,
-        ),
-        LLAMACPP_REASONING,
-        normalize_base_url=True,
-    ),
-    "ollama": OpenAIChatProfile(
-        _policy(
-            "OLLAMA",
-            ReasoningReplayMode.REASONING,
-            default_max_tokens=ANTHROPIC_DEFAULT_MAX_OUTPUT_TOKENS,
-        ),
-        NamedEffortReasoning(
-            _LOW_TO_MAX,
-            disabled_value="none",
-            enabled_value="high",
-        ),
-        normalize_base_url=True,
-        reasoning_delta_field="reasoning",
     ),
 }
