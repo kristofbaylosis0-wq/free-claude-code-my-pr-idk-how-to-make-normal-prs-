@@ -29,6 +29,8 @@ class ProviderConfig:
     api_key: str
     # allow multiple API keys for fallback/rotation
     api_keys: tuple[str, ...] = ()
+    # credential selection strategy: sequential, round_robin, or random
+    credential_strategy: str = "sequential"
     base_url: str = ""
     rate_limit: int | None = None
     rate_window: int = 60
