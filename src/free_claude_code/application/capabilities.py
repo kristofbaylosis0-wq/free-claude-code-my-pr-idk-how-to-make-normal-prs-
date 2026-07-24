@@ -31,7 +31,9 @@ class ModelCapabilities:
 
         return replace(
             self,
-            detected_at=detected_at or self.detected_at or datetime.now(UTC),
+            detected_at=_normalize_datetime(
+                detected_at or self.detected_at or datetime.now(UTC)
+            ),
             detected=True,
         )
 
@@ -55,7 +57,7 @@ class ModelCapabilities:
             supports_streaming=_prefer_bool(other.supports_streaming, self.supports_streaming),
             supports_json_mode=_prefer_bool(other.supports_json_mode, self.supports_json_mode),
             detected=other.detected or self.detected,
-            detected_at=other.detected_at or self.detected_at,
+            detected_at=_normalize_datetime(other.detected_at or self.detected_at),
             source=other.source if other.source != "unknown" else self.source,
         )
 
@@ -172,8 +174,11 @@ class CapabilityRegistry:
     def _is_stale(self, capability: ModelCapabilities, *, now: datetime | None = None) -> bool:
         if capability.detected_at is None:
             return False
-        current = now or datetime.now(UTC)
-        return (current - capability.detected_at).total_seconds() > self._ttl_seconds
+        current = _normalize_datetime(now or datetime.now(UTC))
+        detected_at = _normalize_datetime(capability.detected_at)
+        if current is None or detected_at is None:
+            return False
+        return (current - detected_at).total_seconds() > self._ttl_seconds
 
 
 capability_registry = CapabilityRegistry()
@@ -183,3 +188,11 @@ def _prefer_bool(preferred: bool | None, fallback: bool | None) -> bool | None:
     if preferred is not None:
         return preferred
     return fallback
+
+
+def _normalize_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
