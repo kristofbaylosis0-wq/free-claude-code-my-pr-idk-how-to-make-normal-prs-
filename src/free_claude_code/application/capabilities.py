@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any
+
+from free_claude_code.application.model_metadata import ProviderModelInfo
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,7 +70,13 @@ class CapabilityRegistry:
         self._lock = RLock()
         self._capabilities: dict[tuple[str, str], ModelCapabilities] = {}
 
-    def get(self, provider_id: str, model_id: str, *, now: datetime | None = None) -> ModelCapabilities | None:
+    def get(
+        self,
+        provider_id: str,
+        model_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> ModelCapabilities | None:
         """Return a fresh cached snapshot, or ``None`` if absent or stale."""
 
         with self._lock:
@@ -103,6 +110,46 @@ class CapabilityRegistry:
             normalized = merged.with_detection_time(capability.detected_at)
             self._capabilities[(normalized.provider_id, normalized.model_id)] = normalized
             return normalized
+
+    def register_model_info(
+        self,
+        provider_id: str,
+        model_info: ProviderModelInfo,
+        *,
+        source: str = "model-list",
+    ) -> ModelCapabilities:
+        """Store one provider model-list entry as a capability snapshot."""
+
+        capability = ModelCapabilities(
+            provider_id=provider_id,
+            model_id=model_info.model_id,
+            max_context_tokens=model_info.max_context_tokens,
+            max_output_tokens=model_info.max_output_tokens,
+            supports_tools=model_info.supports_tools,
+            supports_vision=model_info.supports_vision,
+            supports_reasoning=_prefer_bool(
+                model_info.supports_reasoning, model_info.supports_thinking
+            ),
+            supports_streaming=model_info.supports_streaming,
+            supports_json_mode=model_info.supports_json_mode,
+            detected=True,
+            source=source,
+        )
+        return self.update(capability)
+
+    def register_model_infos(
+        self,
+        provider_id: str,
+        model_infos: tuple[ProviderModelInfo, ...] | list[ProviderModelInfo],
+        *,
+        source: str = "model-list",
+    ) -> tuple[ModelCapabilities, ...]:
+        """Store many provider model-list entries and return the normalized snapshots."""
+
+        return tuple(
+            self.register_model_info(provider_id, model_info, source=source)
+            for model_info in model_infos
+        )
 
     def invalidate(self, provider_id: str, model_id: str) -> None:
         """Remove one cached capability snapshot."""
